@@ -1,2 +1,1 @@
-# gokeys-scratch-extension
-Scratch Extension for Roland GO:KEYS
+# Roland GO:KEYS Scratch Extension
