@@ -15,18 +15,25 @@
 
 (function(ext) {
 
+	var deviceConnect = false;
+	var inport = -1;
 	var inputs = [];
+	var outport = -1;
 	var outputs = [];
 
 	var f8Cnt = 0;
-	var startStop = 0;
-	var measCnt = 0;
 	var beatCnt = 0;
-	var deviceConnect = 0;
-	var inport = -1;
-	var outport = -1;
+	var measCnt = 0;
+
+	var startStop = false;
+
 	var rsv_note = 0;
 	var rsv_velo = 0;
+	var noteon_flg = false;
+
+	const TPQN = 24;
+	const BEAT = 4;
+	const OCTAVE_KEYS = 12;
 
 /* -------------------------------------------------------------------------	*/
 	midiInit();
@@ -43,7 +50,7 @@
 		if (event.port.state == "connected") {
 			console.log("GO:KEYS Connected");
 		} else {
-			deviceConnect = 0;
+			deviceConnect = false;
 			console.log("GO:KEYS Disconnected");
 		}
 	}
@@ -64,7 +71,7 @@
 			var string = outputs[i].name;
 			if (string.indexOf('GO:KEYS') > -1) {
 				outport = i;
-				console.log(outport);
+				console.log('Outport = %d', outport);
 			}
 		}
 		inport = -1;
@@ -111,18 +118,18 @@
 				break;
 			case 0xF0:
 				if (ev.data[0] == 0xFA) {
-					startStop = 1;
+					startStop = true;
 				} else if (ev.data[0] == 0xFC) {
-					startStop = 0;
+					startStop = false;
 					f8Cnt = 0;
 					beatCnt = 0;
 					measCnt = 0;
 				} else if (ev.data[0] == 0xF8) {
-					deviceConnect = 1;
+					deviceConnect = true;
 					if (startStop) {
 						f8Cnt++;
-						measCnt = Math.floor(f8Cnt / 96);
-						beatCnt = Math.floor(f8Cnt / 24);
+						measCnt = Math.floor(f8Cnt / (TPQN * BEAT));
+						beatCnt = Math.floor(f8Cnt / TPQN);
 					}
 				}
 				break;
@@ -146,19 +153,19 @@
 
 /* -------------------------------------------------------------------------	*/
 	ext.func_f8 = function() {
-		return (f8Cnt % 96);
+		return (f8Cnt);
 	};
 
 	ext.func_meas = function() {
-		return (measCnt+1);
+		return (measCnt + 1);
 	};
 
 	ext.func_beat = function() {
-		return ((beatCnt % 4) + 1) ;
+		return ((beatCnt % BEAT) + 1) ;
 	};
 
 	ext.func_note = function() {
-		return ((rsv_note % 12) + 1);
+		return ((rsv_note % OCTAVE_KEYS) + 1);
 	};
 
 	ext.func_velo = function() {
@@ -175,9 +182,9 @@
 
 	ext.func_fix_key_on = function(note) {
 
-		var key = rsv_note % 12;
+		var key = rsv_note % OCTAVE_KEYS;
 
-		if (descriptor.menus.chord[key] == note) {
+		if (descriptor.menus.key[key] == note) {
 			if (noteon_flg) {
 				noteon_flg = false;
 				return true;
@@ -188,7 +195,7 @@
 	ext.func_stop = function(part) {
 		switch (part) {
 		case 'All':
-			startStop = 0;
+			startStop = false;
 			measCnt = 0;
 			f8Cnt = 0;
 			sendNRPN(0x0F, 0, 3, 0, 0);
@@ -263,122 +270,28 @@
 
 	ext.func_type = function(type, callback) {
 
-		switch (type) {
-		case 'Trance':
-			sendNRPN(0x0F, 0, 0, 0, 0);
-			break;
-		case 'Funk':
-			sendNRPN(0x0F, 0, 0, 0, 1);
-			break;
-		case 'House':
-			sendNRPN(0x0F, 0, 0, 0, 2);
-			break;
-		case 'Drum N Bass':
-			sendNRPN(0x0F, 0, 0, 0, 3);
-			break;
-		case 'Neo HipHop':
-			sendNRPN(0x0F, 0, 0, 0, 4);
-			break;
-		case 'Pop':
-			sendNRPN(0x0F, 0, 0, 0, 5);
-			break;
-		case 'Bright Rock':
-			sendNRPN(0x0F, 0, 0, 0, 6);
-			break;
-		case 'Trap Step':
-			sendNRPN(0x0F, 0, 0, 0, 7);
-			break;
-		case 'Future Bass':
-			sendNRPN(0x0F, 0, 0, 0, 8);
-			break;
-		case 'Trad HipHop':
-			sendNRPN(0x0F, 0, 0, 0, 9);
-			break;
-		case 'EDM':
-			sendNRPN(0x0F, 0, 0, 0, 10);
-			break;
-		case 'R&B':
-			sendNRPN(0x0F, 0, 0, 0, 11);
-			break;
-		case 'Reggaeton':
-			sendNRPN(0x0F, 0, 0, 0, 12);
-			break;
-		case 'Cumbia':
-			sendNRPN(0x0F, 0, 0, 0, 13);
-			break;
-		case 'ColombianPop':
-			sendNRPN(0x0F, 0, 0, 0, 14);
-			break;
-		case 'Bossa Lounge':
-			sendNRPN(0x0F, 0, 0, 0, 15);
-			break;
-		case 'Arrocha':
-			sendNRPN(0x0F, 0, 0, 0, 16);
-			break;
-		case 'DrumÅfn Bossa':
-			sendNRPN(0x0F, 0, 0, 0, 17);
-			break;
-		case 'Bahia Mix':
-			sendNRPN(0x0F, 0, 0, 0, 18);
-			break;
-		case 'Power Rock':
-			sendNRPN(0x0F, 0, 0, 0, 19);
-			break;
-		case 'Classic Rock':
-			sendNRPN(0x0F, 0, 0, 0, 20);
-			break;
-		case 'J-Pop':
-			sendNRPN(0x0F, 0, 0, 0, 21);
-			break;
+		for (var i = 0; i < descriptor.menus.type.length; i++) {
+			if (descriptor.menus.type[i] === type) {
+				sendNRPN(0x0F, 0, 0, 0, i);
+			}
 		}
+
 		setTimeout(function() { callback(); }, 500);
 	};
 
 	ext.func_chord = function(chord) {
 
-		switch (chord) {
-		case 'C':
-			sendNRPN(0x0F, 0, 2, 0, 0);
-			break;
-		case 'C#':
-			sendNRPN(0x0F, 0, 2, 0, 1);
-			break;
-		case 'D':
-			sendNRPN(0x0F, 0, 2, 0, 2);
-			break;
-		case 'D#':
-			sendNRPN(0x0F, 0, 2, 0, 3);
-			break;
-		case 'E':
-			sendNRPN(0x0F, 0, 2, 0, 4);
-			break;
-		case 'F':
-			sendNRPN(0x0F, 0, 2, 0, 5);
-			break;
-		case 'F#':
-			sendNRPN(0x0F, 0, 2, 0, 6);
-			break;
-		case 'G':
-			sendNRPN(0x0F, 0, 2, 0, 7);
-			break;
-		case 'G#':
-			sendNRPN(0x0F, 0, 2, 0, 8);
-			break;
-		case 'A':
-			sendNRPN(0x0F, 0, 2, 0, 9);
-			break;
-		case 'A#':
-			sendNRPN(0x0F, 0, 2, 0, 10);
-			break;
-		case 'B':
-			sendNRPN(0x0F, 0, 2, 0, 11);
-			break;
+		for (var i = 0; i < descriptor.menus.key.length; i++) {
+			if (descriptor.menus.key[i] === chord) {
+				sendNRPN(0x0F, 0, 2, 0, i);
+			}
 		}
+
 	};
 
 	ext.func_wait_meas = function(wait, callback) {
 
-		var dstTime = f8Cnt + (wait*96);
+		var dstTime = f8Cnt + (wait * BEAT * TPQN);
 
 		var timerID = setInterval(function() {
 			if (f8Cnt >= dstTime) {
@@ -415,7 +328,7 @@
 			['-'],
 		],
 		menus: {
-			key: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',],
+			key: ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B',],
 			type: ['Trance','Funk','House','Drum N Bass','Neo HipHop','Pop','Bright Rock','Trap Step','Future Bass','Trad HipHop','EDM','R&B', 'Reggaeton', 'Cumbia', 'ColombianPop', 'Bossa Lounge', 'Arrocha', 'Drum N Bossa', 'Bahia Mix', 'Power Rock', 'Classic Rock', 'J-Pop'],
 			play: ['Drums', 'Bass', 'Melody A', 'Melody B'],
 			stop: ['All', 'Drums', 'Bass', 'Melody A', 'Melody B'],
