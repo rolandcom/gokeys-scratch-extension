@@ -337,6 +337,6 @@
 	};
 
 	// Register the extension
-	ScratchExtensions.register('GO:KEYS Extesion', descriptor, ext);
+	ScratchExtensions.register('GO:KEYS Extension', descriptor, ext);
 
 })({});
